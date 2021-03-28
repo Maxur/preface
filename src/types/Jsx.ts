@@ -1,9 +1,8 @@
-import Component from '../Component.ts';
+import ComponentFunction from './ComponentFunction.ts';
 import Props from './Props.ts';
-import State from './State.ts';
 
 export default interface Jsx {
-  tagName: string | (() => Component<State>);
+  tagName: string | ComponentFunction;
   attrs: Props;
   children: (string | number | Function | Jsx)[];
 }

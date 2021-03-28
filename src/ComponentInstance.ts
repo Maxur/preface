@@ -1,10 +1,11 @@
 import Render from './Render.ts';
 import Component from './Component.ts';
-import { Reactive, isReactive } from './reactive.ts';
+import { reactive, Reactive, isReactive } from './reactive.ts';
 import { Cached, isCached } from './cached.ts';
 import { watch } from './watch.ts';
 import Props from './types/Props.ts';
 import State from './types/State.ts';
+import ComponentFunction from './types/ComponentFunction.ts';
 
 const stateProxy: ProxyHandler<State> = {
   get(obj, prop: string) {
@@ -23,6 +24,8 @@ const stateProxy: ProxyHandler<State> = {
 class ComponentInstance {
   private _component: Component<State>;
 
+  private _props: Record<string, Reactive<unknown>> = {};
+
   private _render: Render;
 
   private _refreshTimer = 0;
@@ -33,10 +36,14 @@ class ComponentInstance {
 
   private _onRender: ((value?: unknown) => void)[] = [];
 
-  constructor(componentFunction: (props: Props) => Component<State>, props: Props, slot: any[]) {
+  constructor(componentFunction: ComponentFunction, props: Props, slot: any[]) {
     this._component = componentFunction(props);
+    for (const v in props) {
+      this._props[v] = reactive(props[v]);
+    }
+    this._slot = slot;
     const state = this._component.execStateFunction({
-      props,
+      props: this._props,
     });
     const cacheds: Cached<unknown>[] = [];
     const reactives: Reactive<unknown>[] = [];
@@ -52,8 +59,10 @@ class ComponentInstance {
     reactives.forEach((s) => {
       s._cachedPool = cacheds;
     });
+    for (const v in props) {
+      this._props[v]._cachedPool = cacheds;
+    }
     this._renderArgs = new Proxy(state, stateProxy);
-    this._slot = slot;
     this._render = new Render(this._component.execRenderFunction(this._renderArgs, this._slot));
   }
 
@@ -63,6 +72,14 @@ class ComponentInstance {
 
   getRenderArgs() {
     return this._renderArgs;
+  }
+
+  updateWith(props: Props, slot: any[]) {
+    for (const v in props) {
+      this._props[v].value = props[v];
+    }
+    this._slot = slot;
+    this.refresh();
   }
 
   /**

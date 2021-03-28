@@ -3,7 +3,7 @@ import Jsx from './types/Jsx.ts';
 
 interface VirtualDom {
   jsx: {
-    tagName: Jsx['tagName'],
+    tagName: Jsx['tagName'] | ComponentInstance,
     attrs: Jsx['attrs'],
     children: (VirtualDom | string | number | Function)[];
   },
@@ -27,21 +27,29 @@ function toText(v: any): string {
 
 function buildHtml(jsx: Jsx) {
   const { tagName, attrs, children } = jsx;
-  let html: HTMLElement;
+  let virtualDom: VirtualDom;
   if (typeof tagName !== 'string') {
-    const c = new ComponentInstance(tagName, attrs, children);
-    html = c.getRender().getRootElement();
+    let c = new ComponentInstance(tagName, attrs, children);
+    const html = c.getRender().getRootElement();
+    virtualDom = {
+      jsx: {
+        tagName: c,
+        attrs,
+        children: []
+      },
+      html,
+    }
   } else {
-    html = document.createElement(tagName);
+    const html = document.createElement(tagName);
+    virtualDom = {
+      jsx: {
+        tagName,
+        attrs,
+        children: []
+      },
+      html,
+    }
   }
-  const virtualDom: VirtualDom = {
-    jsx: {
-      tagName,
-      attrs,
-      children: []
-    },
-    html,
-  };
   if (typeof tagName === 'string') {
     if (attrs) {
       Object.entries(attrs).forEach(([name, value]) => {
@@ -63,15 +71,19 @@ function buildHtml(jsx: Jsx) {
         virtualDom.html.appendChild(e.html);
         virtualDom.jsx.children.push(e);
       }
-    })
+    });
   }
   return virtualDom;
 }
 
 function htmlPatch(virtualDom: VirtualDom, jsx: Jsx) {
+  const oldTagName = virtualDom.jsx.tagName;
   const oldAttrs = virtualDom.jsx.attrs;
   const oldChildren = virtualDom.jsx.children;
   const { attrs, children } = jsx;
+  if (oldTagName instanceof ComponentInstance) {
+    oldTagName.updateWith(attrs, children);
+  }
   if (oldAttrs) {
     for (const k in oldAttrs) {
       if (attrs === null || attrs[k] === undefined) {
