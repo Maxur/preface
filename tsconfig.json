@@ -1,0 +1,7 @@
+{
+  "compilerOptions": {
+    "lib": [ "dom", "es2020", "deno.ns" ],
+    "jsx": "react",
+    "jsxFactory": "Component.h"
+  }
+}
