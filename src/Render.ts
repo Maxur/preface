@@ -5,18 +5,18 @@ interface VirtualDom {
   jsx: {
     tagName: Jsx['tagName'] | ComponentInstance,
     attrs: Jsx['attrs'],
-    children: (VirtualDom | string | number | Function)[];
+    children: (VirtualDom | string | number | (() => unknown))[];
   },
   html: HTMLElement
 }
 
 const customAttributePrefix = '$';
 
-function isSimpleVal(v: unknown) : v is (number | string | Function) {
+function isSimpleVal(v: unknown) : v is (number | string | (() => unknown)) {
   return ['number', 'string', 'function'].indexOf(typeof v) !== -1;
 }
 
-function toText(v: any): string {
+function toText(v: unknown): string {
   if (typeof v === 'number' || typeof v === 'string') {
     return v.toString();
   } else if (typeof v === 'function') {
@@ -29,7 +29,7 @@ function buildHtml(jsx: Jsx) {
   const { tagName, attrs, children } = jsx;
   let virtualDom: VirtualDom;
   if (typeof tagName !== 'string') {
-    let c = new ComponentInstance(tagName, attrs, children);
+    const c = new ComponentInstance(tagName, attrs, children);
     const html = c.getRender().getRootElement();
     virtualDom = {
       jsx: {

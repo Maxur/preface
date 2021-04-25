@@ -5,7 +5,7 @@ import { createApplication, Component, reactive, cached, watch } from '../mod.ts
 Deno.test('reactivity', async () => {
   globalThis.document = (new DOMParser().parseFromString(index, 'text/html') || new Document()) as Document;
   const c = await createApplication(
-    () => new Component(() => {
+    new Component(() => {
       const v1 = reactive(42);
       const v2 = cached(() => v1.value + 1);
       const v3 = reactive(0);
@@ -21,7 +21,7 @@ Deno.test('reactivity', async () => {
         <span id="v2">{state.v2}</span>
         <span id="v3">{state.v3}</span>
       </div>
-    ))
+    )).end()
   );
   c.mount('#app');
   const v1 = document.getElementById('v1');

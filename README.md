@@ -29,9 +29,9 @@ createApplication(Main).then((ci) => {
 ```tsx
 // import { Component, reactive } from './mod.ts';
 
-export default () => new Component(() => ({
+export default new Component(() => ({
   count: reactive(0)
 })).render((state) => (
   <button type="button" $click={() => state.count += 1}>{state.count}</button>
-));
+)).end();
 ```

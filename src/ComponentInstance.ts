@@ -32,11 +32,11 @@ class ComponentInstance {
 
   private _renderArgs: State;
 
-  private _slot: any[];
+  private _slot: unknown[];
 
   private _onRender: ((value?: unknown) => void)[] = [];
 
-  constructor(componentFunction: ComponentFunction, props: Props, slot: any[]) {
+  constructor(componentFunction: ComponentFunction, props: Props, slot: unknown[]) {
     this._component = componentFunction(props);
     for (const v in props) {
       this._props[v] = reactive(props[v]);
@@ -74,7 +74,7 @@ class ComponentInstance {
     return this._renderArgs;
   }
 
-  updateWith(props: Props, slot: any[]) {
+  updateWith(props: Props, slot: unknown[]) {
     for (const v in props) {
       this._props[v].value = props[v];
     }

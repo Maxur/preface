@@ -3,7 +3,7 @@ import { Cached } from './cached.ts';
 class Reactive<T> {
   _cachedPool: Cached<unknown>[] = [];
 
-  _functions: Function[] = [];
+  _functions: (() => unknown)[] = [];
 
   value: T;
 

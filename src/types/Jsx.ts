@@ -4,5 +4,5 @@ import Props from './Props.ts';
 export default interface Jsx {
   tagName: string | ComponentFunction;
   attrs: Props;
-  children: (string | number | Function | Jsx)[];
+  children: (string | number | (() => unknown) | Jsx)[];
 }

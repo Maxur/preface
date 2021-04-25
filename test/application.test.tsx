@@ -5,11 +5,11 @@ import { createApplication, Component, reactive } from '../mod.ts';
 Deno.test('application mount', async () => {
   globalThis.document = (new DOMParser().parseFromString(index, 'text/html') || new Document()) as Document;
   const c = await createApplication(
-    () => new Component(() => ({
+    new Component(() => ({
       test: reactive('abc')
     })).render((state) => (
       <span id="test">{state.test}</span>
-    ))
+    )).end()
   );
   c.mount('#app');
   const span = document.getElementById('test');

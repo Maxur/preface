@@ -7,7 +7,7 @@ import { watch } from './src/watch.ts';
 declare global {
   namespace JSX {
     interface IntrinsicElements {
-      [key: string]: any
+      [key: string]: unknown
     }
   }
 }
