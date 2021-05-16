@@ -35,3 +35,37 @@ export default new Component(() => ({
   <button type="button" $click={() => state.count += 1}>{state.count}</button>
 )).end();
 ```
+
+### Todo list
+```tsx
+// import { Component, reactive } from './mod.ts';
+
+export default new Component(() => {
+  const items = reactive(['Task 1', 'Task 2']);
+  const insert = () => {
+    items.value.push(`Task ${items.value.length + 1}`);
+  }
+  const remove = (index: number) => {
+    items.value.splice(index, 1);
+  }
+  return {
+    items,
+    insert,
+    remove
+  }
+}).render((state) => {
+  return (
+    <div>
+      {state.items.map((item, index) => {
+        return (
+          <div>
+            <input type="text" value={item} />
+            <button type="button" $click={() => state.remove(index)}>Remove</button>
+          </div>
+        )
+      })}
+      <button type="button" $click={state.insert}>Insert</button>
+    </div>
+  )
+}).end();
+```

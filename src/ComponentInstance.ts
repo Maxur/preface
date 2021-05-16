@@ -15,7 +15,7 @@ const stateProxy: ProxyHandler<State> = {
     }
     return v;
   },
-  set: (obj, prop: string, value) => {
+  set(obj, prop: string, value) {
     Reflect.set(Reflect.get(obj, prop), 'value', value)
     return true;
   }

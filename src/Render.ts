@@ -2,12 +2,11 @@ import ComponentInstance from './ComponentInstance.ts';
 import Jsx from './types/Jsx.ts';
 
 interface VirtualDom {
-  jsx: {
-    tagName: Jsx['tagName'] | ComponentInstance,
-    attrs: Jsx['attrs'],
-    children: (VirtualDom | string | number | (() => unknown))[];
-  },
-  html: HTMLElement
+  tagName: Jsx['tagName'],
+  attrs: Jsx['attrs'],
+  children: (string | number | (() => unknown) | VirtualDom)[];
+  instance?: ComponentInstance,
+  html: HTMLElement;
 }
 
 const customAttributePrefix = '$';
@@ -29,25 +28,22 @@ function buildHtml(jsx: Jsx) {
   const { tagName, attrs, children } = jsx;
   let virtualDom: VirtualDom;
   if (typeof tagName !== 'string') {
-    const c = new ComponentInstance(tagName, attrs, children);
-    const html = c.getRender().getRootElement();
+    const instance = new ComponentInstance(tagName, attrs, children);
+    const html = instance.getRender().getRootElement();
     virtualDom = {
-      jsx: {
-        tagName: c,
-        attrs,
-        children: []
-      },
-      html,
+      tagName,
+      attrs,
+      children: [],
+      instance,
+      html
     }
   } else {
     const html = document.createElement(tagName);
     virtualDom = {
-      jsx: {
-        tagName,
-        attrs,
-        children: []
-      },
-      html,
+      tagName,
+      attrs,
+      children: [],
+      html
     }
   }
   if (typeof tagName === 'string') {
@@ -64,12 +60,12 @@ function buildHtml(jsx: Jsx) {
       if (isSimpleVal(child)) {
         const result = toText(child);
         virtualDom.html.appendChild(document.createTextNode(result));
-        virtualDom.jsx.children.push(result);
+        virtualDom.children.push(result);
       }
       else {
         const e = buildHtml(child);
         virtualDom.html.appendChild(e.html);
-        virtualDom.jsx.children.push(e);
+        virtualDom.children.push(e);
       }
     });
   }
@@ -77,19 +73,19 @@ function buildHtml(jsx: Jsx) {
 }
 
 function htmlPatch(virtualDom: VirtualDom, jsx: Jsx) {
-  const oldTagName = virtualDom.jsx.tagName;
-  const oldAttrs = virtualDom.jsx.attrs;
-  const oldChildren = virtualDom.jsx.children;
+  const instance = virtualDom.instance;
+  const oldAttrs = virtualDom.attrs;
+  const oldChildren = virtualDom.children;
   const { attrs, children } = jsx;
-  if (oldTagName instanceof ComponentInstance) {
-    oldTagName.updateWith(attrs, children);
+  if (instance instanceof ComponentInstance) {
+    instance.updateWith(attrs, children);
   }
   if (oldAttrs) {
     for (const k in oldAttrs) {
       if (attrs === null || attrs[k] === undefined) {
         if (k[0] !== customAttributePrefix) {
           virtualDom.html.removeAttribute(k);
-          const exists = (virtualDom.jsx.attrs && virtualDom.jsx.attrs[k] ? virtualDom.jsx.attrs : false);
+          const exists = (virtualDom.attrs && virtualDom.attrs[k] ? virtualDom.attrs : false);
           if (exists) {
             delete exists[k];
           }
@@ -102,7 +98,7 @@ function htmlPatch(virtualDom: VirtualDom, jsx: Jsx) {
       if (oldAttrs === null || oldAttrs[k] !== attrs[k]) {
         if (k[0] !== customAttributePrefix) {
           virtualDom.html.setAttribute(k, toText(attrs[k]));
-          const exists = (virtualDom.jsx.attrs && virtualDom.jsx.attrs[k] ? virtualDom.jsx.attrs : false);
+          const exists = (virtualDom.attrs && virtualDom.attrs[k] ? virtualDom.attrs : false);
           if (exists) {
             exists[k] = attrs[k];
           }
@@ -110,15 +106,33 @@ function htmlPatch(virtualDom: VirtualDom, jsx: Jsx) {
       }
     }
   }
+  oldChildren.forEach((oldC, i, obj) => {
+    if (children[i] === undefined) {
+      virtualDom.html.removeChild(virtualDom.html.childNodes[i]);
+      obj.splice(i, 1);
+    }
+  });
   children.forEach((child, i) => {
     const oldC = oldChildren[i];
     if (isSimpleVal(oldC) && isSimpleVal(child) && oldC !== child) {
       const result = toText(child);
       virtualDom.html.childNodes[i].nodeValue = result;
-      virtualDom.jsx.children[i] = result;
+      virtualDom.children[i] = result;
     }
-    else if(!isSimpleVal(oldC) && !isSimpleVal(child)) {
-      htmlPatch(oldC, child);
+    else if (!isSimpleVal(oldC) && !isSimpleVal(child)) {
+      if (oldC === undefined) {
+        const build = buildHtml(child);
+        virtualDom.html.appendChild(build.html);
+        virtualDom.children.push(build);
+      }
+      else if (oldC.tagName !== child.tagName) {
+        const build = buildHtml(child);
+        virtualDom.html.replaceChild(build.html, virtualDom.html.childNodes[i]);
+        virtualDom.children.splice(i, 1, build);
+      }
+      else {
+        htmlPatch(oldC, child);
+      }
     }
   });
 }
