@@ -97,7 +97,7 @@ function htmlPatch(virtualDom: VirtualDom, jsx: Jsx) {
     for (const k in attrs) {
       if (oldAttrs === null || oldAttrs[k] !== attrs[k]) {
         if (k[0] !== customAttributePrefix) {
-          virtualDom.html.setAttribute(k, toText(attrs[k]));
+          (virtualDom.html as any)[k] = toText(attrs[k]);
           const exists = (virtualDom.attrs && virtualDom.attrs[k] ? virtualDom.attrs : false);
           if (exists) {
             exists[k] = attrs[k];
