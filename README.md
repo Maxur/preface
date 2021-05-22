@@ -48,10 +48,16 @@ export default new Component(() => {
   const remove = (index: number) => {
     items.value.splice(index, 1);
   }
+  const change = (index: number) => (e: any) => {
+    if (e && e.target) {
+      items.value[index] = e.target.value;
+    }
+  }
   return {
     items,
     insert,
-    remove
+    remove,
+    change
   }
 }).render((state) => {
   return (
@@ -59,7 +65,7 @@ export default new Component(() => {
       {state.items.map((item, index) => {
         return (
           <div>
-            <input type="text" value={item} />
+            <input type="text" value={item} $input={state.change(index)} />{item}
             <button type="button" $click={() => state.remove(index)}>Remove</button>
           </div>
         )
