@@ -1,5 +1,4 @@
 import Render from './Render.ts';
-import Component from './Component.ts';
 import { reactive, Reactive, isReactive } from './reactive.ts';
 import { Cached, isCached } from './cached.ts';
 import { watch } from './watch.ts';
@@ -16,13 +15,13 @@ const stateProxy: ProxyHandler<State> = {
     return v;
   },
   set(obj, prop: string, value) {
-    Reflect.set(Reflect.get(obj, prop), 'value', value)
+    Reflect.set(Reflect.get(obj, prop), 'value', value);
     return true;
-  }
-}
+  },
+};
 
 class ComponentInstance {
-  private _component: Component<State>;
+  private _component: ReturnType<ComponentFunction>;
 
   private _props: Record<string, Reactive<unknown>> = {};
 
@@ -36,7 +35,11 @@ class ComponentInstance {
 
   private _onRender: ((value?: unknown) => void)[] = [];
 
-  constructor(componentFunction: ComponentFunction, props: Props, slot: unknown[]) {
+  constructor(
+    componentFunction: ComponentFunction,
+    props: Props,
+    slot: unknown[]
+  ) {
     this._component = componentFunction(props);
     for (const v in props) {
       this._props[v] = reactive(props[v]);
@@ -63,18 +66,20 @@ class ComponentInstance {
       this._props[v]._cachedPool = cacheds;
     }
     this._renderArgs = new Proxy(state, stateProxy);
-    this._render = new Render(this._component.execRenderFunction(this._renderArgs, this._slot));
+    this._render = new Render(
+      this._component.execRenderFunction(this._renderArgs, this._slot)
+    );
   }
 
-  getRender() {
+  getRender(): Render {
     return this._render;
   }
 
-  getRenderArgs() {
+  getRenderArgs(): State {
     return this._renderArgs;
   }
 
-  updateWith(props: Props, slot: unknown[]) {
+  updateWith(props: Props, slot: unknown[]): void {
     for (const v in props) {
       this._props[v].value = props[v];
     }
@@ -86,8 +91,8 @@ class ComponentInstance {
    * Mount the component on a HTML element.
    * @param elmement The HTML element or a query selector.
    * @returns True on success, false otherwise.
-  */
-  mount(element: HTMLElement | string) {
+   */
+  mount(element: HTMLElement | string): boolean {
     if (typeof element === 'string') {
       element = document.querySelector(element) as HTMLElement;
     }
@@ -101,10 +106,12 @@ class ComponentInstance {
   private notify = () => {
     clearTimeout(this._refreshTimer);
     this._refreshTimer = setTimeout(this.refresh.bind(this));
-  }
+  };
 
   private refresh() {
-    this._render.update(this._component.execRenderFunction(this._renderArgs, this._slot));
+    this._render.update(
+      this._component.execRenderFunction(this._renderArgs, this._slot)
+    );
     let fn: ((value?: unknown) => void) | undefined;
     while ((fn = this._onRender.pop()) !== undefined) {
       fn();
@@ -114,12 +121,12 @@ class ComponentInstance {
   /**
    * Return a new Promise resolved on next render.
    * @returns New Promise.
-  */
-  nextRender() {
+   */
+  nextRender(): Promise<unknown> {
     return new Promise((resolve) => {
-      this._onRender.push(resolve)
+      this._onRender.push(resolve);
     });
   }
 }
 
-export default ComponentInstance
+export default ComponentInstance;

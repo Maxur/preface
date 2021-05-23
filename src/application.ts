@@ -1,17 +1,20 @@
-import Component from './Component.ts';
 import ComponentInstance from './ComponentInstance.ts';
-import Props from './types/Props.ts';
+import ComponentFunction from './types/ComponentFunction.ts';
 
 /**
  * Create an application.
  * @param componentFn The function that return the component.
  * @param css The css that will be added to the document.
  * @returns Component instance.
-*/
-export default function createApplication(componentFn: (props: Props) => Component<any>, css?: string) {
+ */
+export default function createApplication(
+  componentFn: ComponentFunction,
+  css?: string
+): Promise<ComponentInstance> {
   return new Promise<ComponentInstance>((resolve) => {
     if (css !== undefined) {
-      document.head.appendChild(document.createElement('style')).innerHTML = css
+      document.head.appendChild(document.createElement('style')).innerHTML =
+        css;
     }
     if (document.readyState === 'loading') {
       window.addEventListener('DOMContentLoaded', () => {
@@ -20,5 +23,5 @@ export default function createApplication(componentFn: (props: Props) => Compone
     } else {
       resolve(new ComponentInstance(componentFn, null, []));
     }
-  })
+  });
 }

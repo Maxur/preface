@@ -2,16 +2,16 @@ import ComponentInstance from './ComponentInstance.ts';
 import Jsx from './types/Jsx.ts';
 
 interface VirtualDom {
-  tagName: Jsx['tagName'],
-  attrs: Jsx['attrs'],
+  tagName: Jsx['tagName'];
+  attrs: Jsx['attrs'];
   children: (string | number | (() => unknown) | VirtualDom)[];
-  instance?: ComponentInstance,
+  instance?: ComponentInstance;
   html: HTMLElement;
 }
 
 const customAttributePrefix = '$';
 
-function isSimpleVal(v: unknown) : v is (number | string | (() => unknown)) {
+function isSimpleVal(v: unknown): v is number | string | (() => unknown) {
   return ['number', 'string', 'function'].indexOf(typeof v) !== -1;
 }
 
@@ -35,34 +35,36 @@ function buildHtml(jsx: Jsx) {
       attrs,
       children: [],
       instance,
-      html
-    }
+      html,
+    };
   } else {
     const html = document.createElement(tagName);
     virtualDom = {
       tagName,
       attrs,
       children: [],
-      html
-    }
+      html,
+    };
   }
   if (typeof tagName === 'string') {
     if (attrs) {
       Object.entries(attrs).forEach(([name, value]) => {
         if (name[0] === customAttributePrefix) {
-          virtualDom.html.addEventListener(name.slice(1), value as unknown as EventListener);
+          virtualDom.html.addEventListener(
+            name.slice(1),
+            value as unknown as EventListener
+          );
         } else {
           virtualDom.html.setAttribute(name, toText(value));
         }
-      })
+      });
     }
     children.forEach((child) => {
       if (isSimpleVal(child)) {
         const result = toText(child);
         virtualDom.html.appendChild(document.createTextNode(result));
         virtualDom.children.push(result);
-      }
-      else {
+      } else {
         const e = buildHtml(child);
         virtualDom.html.appendChild(e.html);
         virtualDom.children.push(e);
@@ -85,7 +87,8 @@ function htmlPatch(virtualDom: VirtualDom, jsx: Jsx) {
       if (attrs === null || attrs[k] === undefined) {
         if (k[0] !== customAttributePrefix) {
           virtualDom.html.removeAttribute(k);
-          const exists = (virtualDom.attrs && virtualDom.attrs[k] ? virtualDom.attrs : false);
+          const exists =
+            virtualDom.attrs && virtualDom.attrs[k] ? virtualDom.attrs : false;
           if (exists) {
             delete exists[k];
           }
@@ -97,8 +100,11 @@ function htmlPatch(virtualDom: VirtualDom, jsx: Jsx) {
     for (const k in attrs) {
       if (oldAttrs === null || oldAttrs[k] !== attrs[k]) {
         if (k[0] !== customAttributePrefix) {
-          (virtualDom.html as any)[k] = toText(attrs[k]);
-          const exists = (virtualDom.attrs && virtualDom.attrs[k] ? virtualDom.attrs : false);
+          (virtualDom.html as unknown as Record<string, string>)[k] = toText(
+            attrs[k]
+          );
+          const exists =
+            virtualDom.attrs && virtualDom.attrs[k] ? virtualDom.attrs : false;
           if (exists) {
             exists[k] = attrs[k];
           }
@@ -106,7 +112,7 @@ function htmlPatch(virtualDom: VirtualDom, jsx: Jsx) {
       }
     }
   }
-  oldChildren.forEach((oldC, i, obj) => {
+  oldChildren.forEach((_, i, obj) => {
     if (children[i] === undefined) {
       virtualDom.html.removeChild(virtualDom.html.childNodes[i]);
       obj.splice(i, 1);
@@ -118,19 +124,16 @@ function htmlPatch(virtualDom: VirtualDom, jsx: Jsx) {
       const result = toText(child);
       virtualDom.html.childNodes[i].nodeValue = result;
       virtualDom.children[i] = result;
-    }
-    else if (!isSimpleVal(oldC) && !isSimpleVal(child)) {
+    } else if (!isSimpleVal(oldC) && !isSimpleVal(child)) {
       if (oldC === undefined) {
         const build = buildHtml(child);
         virtualDom.html.appendChild(build.html);
         virtualDom.children.push(build);
-      }
-      else if (oldC.tagName !== child.tagName) {
+      } else if (oldC.tagName !== child.tagName) {
         const build = buildHtml(child);
         virtualDom.html.replaceChild(build.html, virtualDom.html.childNodes[i]);
         virtualDom.children.splice(i, 1, build);
-      }
-      else {
+      } else {
         htmlPatch(oldC, child);
       }
     }
@@ -144,14 +147,11 @@ export default class Render {
     this._cache = buildHtml(jsx);
   }
 
-  getRootElement() {
+  getRootElement(): HTMLElement {
     return this._cache.html;
   }
 
-  update(jsx: Jsx) {
-    htmlPatch(
-      this._cache,
-      jsx,
-    );
+  update(jsx: Jsx): void {
+    htmlPatch(this._cache, jsx);
   }
 }

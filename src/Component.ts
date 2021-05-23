@@ -2,16 +2,26 @@ import Jsx from './types/Jsx.ts';
 import Props from './types/Props.ts';
 import State from './types/State.ts';
 
-type UnpackStates<T extends State> = { [P in keyof T]: (T[P] extends { value: unknown } ? T[P]['value'] : T[P]) };
-type RenderFunction<T extends State> = (state: { [P in keyof T]: (T[P] extends { value: unknown } ? T[P]['value'] : T[P]) }, slot: unknown[]) => Jsx;
-type StateFunction<TProps extends Props, TState extends State> = (options: ComponentOptions<TProps>) => TState;
+type UnpackStates<T extends State> = {
+  [P in keyof T]: T[P] extends { value: unknown } ? T[P]['value'] : T[P];
+};
+type RenderFunction<T extends State> = (
+  state: {
+    [P in keyof T]: T[P] extends { value: unknown } ? T[P]['value'] : T[P];
+  },
+  slot: unknown[]
+) => Jsx;
+type StateFunction<TProps extends Props, TState extends State> = (
+  options: ComponentOptions<TProps>
+) => TState;
 
 interface ComponentOptions<T extends Props> {
   props: T;
   context?: Record<string, unknown>;
 }
 
-class Component<TProps extends Props, TState extends State = any> { // TODO: Replace "any" to partial type argument inference
+// TODO: Replace "any" to partial type argument inference
+class Component<TProps extends Props, TState extends State = any> {
   private _stateFunction: StateFunction<TProps, TState>;
 
   private _renderFunction: RenderFunction<TState>;
@@ -21,26 +31,30 @@ class Component<TProps extends Props, TState extends State = any> { // TODO: Rep
     this._renderFunction = () => Component.h('template', null);
   }
 
-  static h(tagName: Jsx['tagName'], attrs: Jsx['attrs'], ...children: Jsx['children']) {
-    return { tagName, attrs, children: children.flat(Infinity) } as Jsx;
+  static h(
+    tagName: Jsx['tagName'],
+    attrs: Jsx['attrs'],
+    ...children: Jsx['children']
+  ): Jsx {
+    return { tagName, attrs, children: children.flat(Infinity) };
   }
 
-  render(renderFunction: RenderFunction<TState>) {
+  render(renderFunction: RenderFunction<TState>): this {
     this._renderFunction = renderFunction;
     return this;
   }
 
-  execStateFunction(options: ComponentOptions<TProps>) {
+  execStateFunction(options: ComponentOptions<TProps>): TState {
     return this._stateFunction(options);
   }
 
-  execRenderFunction(state: UnpackStates<TState>, slot: unknown[]) {
+  execRenderFunction(state: UnpackStates<TState>, slot: unknown[]): Jsx {
     return this._renderFunction(state, slot);
   }
 
   end() {
-    return (_: TProps) => this;
+    return (_: TProps): this => this;
   }
 }
 
-export default Component
+export default Component;

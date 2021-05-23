@@ -23,7 +23,7 @@ class Cached<T> {
     this._dirty = false;
   }
 
-  get value() {
+  get value(): T {
     if (this._dirty === true) {
       this.refresh();
     }
@@ -35,7 +35,7 @@ class Cached<T> {
  * Create a cached function. Cached function are executed only if the value is getted and a reactive value in the function is updated.
  * @param fn The function that return the value.
  * @returns Cached function.
-*/
+ */
 function cached<T>(fn: () => T): Cached<T> {
   return new Cached(fn);
 }

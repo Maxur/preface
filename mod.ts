@@ -7,15 +7,9 @@ import { watch } from './src/watch.ts';
 declare global {
   namespace JSX {
     interface IntrinsicElements {
-      [key: string]: unknown
+      [key: string]: unknown;
     }
   }
 }
 
-export {
-  createApplication,
-  cached,
-  Component,
-  reactive,
-  watch,
-}
+export { createApplication, cached, Component, reactive, watch };
