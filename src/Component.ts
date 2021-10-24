@@ -1,18 +1,19 @@
-import Jsx from './types/Jsx.ts';
-import Props from './types/Props.ts';
-import State from './types/State.ts';
+import Jsx from "./types/Jsx.ts";
+import Props from "./types/Props.ts";
+import State from "./types/State.ts";
+import { h } from "./JSX.ts";
 
 type UnpackStates<T extends State> = {
-  [P in keyof T]: T[P] extends { value: unknown } ? T[P]['value'] : T[P];
+  [P in keyof T]: T[P] extends { value: unknown } ? T[P]["value"] : T[P];
 };
 type RenderFunction<T extends State> = (
   state: {
-    [P in keyof T]: T[P] extends { value: unknown } ? T[P]['value'] : T[P];
+    [P in keyof T]: T[P] extends { value: unknown } ? T[P]["value"] : T[P];
   },
-  slot: unknown[]
+  slot: unknown[],
 ) => Jsx;
 type StateFunction<TProps extends Props, TState extends State> = (
-  options: ComponentOptions<TProps>
+  options: ComponentOptions<TProps>,
 ) => TState;
 
 interface ComponentOptions<T extends Props> {
@@ -28,15 +29,7 @@ class Component<TProps extends Props, TState extends State = any> {
 
   constructor(stateFunction: StateFunction<TProps, TState>) {
     this._stateFunction = stateFunction;
-    this._renderFunction = () => Component.h('template', null);
-  }
-
-  static h(
-    tagName: Jsx['tagName'],
-    attrs: Jsx['attrs'],
-    ...children: Jsx['children']
-  ): Jsx {
-    return { tagName, attrs, children: children.flat(Infinity) };
+    this._renderFunction = () => h("template", null);
   }
 
   render(renderFunction: RenderFunction<TState>): this {

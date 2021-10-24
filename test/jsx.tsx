@@ -1,4 +1,4 @@
-import { Component } from '../mod.ts';
+import { JSX } from '../mod.ts';
 
 export default (
   <div class="test" id="test-id">

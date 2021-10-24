@@ -1,4 +1,4 @@
-import { Cached } from './cached.ts';
+import { Cached } from "./cached.ts";
 
 type ReactiveType = unknown;
 
@@ -18,7 +18,7 @@ class Reactive<T extends ReactiveType> {
 function reactiveProxy<T>(): ProxyHandler<Reactive<T>> {
   return {
     get(obj, prop) {
-      if (prop === '_cachedPool' || prop === '_functions') {
+      if (prop === "_cachedPool" || prop === "_functions") {
         return Reflect.get(obj, prop);
       }
       obj._cachedPool.forEach((cached) => {
@@ -27,12 +27,12 @@ function reactiveProxy<T>(): ProxyHandler<Reactive<T>> {
         }
       });
       const value = Reflect.get(obj, prop);
-      return typeof value === 'object'
+      return typeof value === "object"
         ? new Proxy(value, refererProxy(obj))
         : value;
     },
     set(obj, prop, value) {
-      if (prop === '_cachedPool' || prop === '_functions') {
+      if (prop === "_cachedPool" || prop === "_functions") {
         return Reflect.set(obj, prop, value);
       }
       const r = Reflect.set(obj, prop, value);
@@ -87,4 +87,4 @@ function reactive<T extends ReactiveType>(value: T): Reactive<T> {
   return new Reactive(value);
 }
 
-export { Reactive, reactive, isReactive };
+export { isReactive, Reactive, reactive };

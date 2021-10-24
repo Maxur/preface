@@ -1,10 +1,10 @@
-import Render from './Render.ts';
-import { reactive, Reactive, isReactive } from './reactive.ts';
-import { Cached, isCached } from './cached.ts';
-import { watch } from './watch.ts';
-import Props from './types/Props.ts';
-import State from './types/State.ts';
-import ComponentFunction from './types/ComponentFunction.ts';
+import Render from "./Render.ts";
+import { isReactive, Reactive, reactive } from "./reactive.ts";
+import { Cached, isCached } from "./cached.ts";
+import { watch } from "./watch.ts";
+import Props from "./types/Props.ts";
+import State from "./types/State.ts";
+import ComponentFunction from "./types/ComponentFunction.ts";
 
 const stateProxy: ProxyHandler<State> = {
   get(obj, prop: string) {
@@ -15,7 +15,7 @@ const stateProxy: ProxyHandler<State> = {
     return v;
   },
   set(obj, prop: string, value) {
-    Reflect.set(Reflect.get(obj, prop), 'value', value);
+    Reflect.set(Reflect.get(obj, prop), "value", value);
     return true;
   },
 };
@@ -38,7 +38,7 @@ class ComponentInstance {
   constructor(
     componentFunction: ComponentFunction,
     props: Props,
-    slot: unknown[]
+    slot: unknown[],
   ) {
     this._component = componentFunction(props);
     for (const v in props) {
@@ -67,7 +67,7 @@ class ComponentInstance {
     }
     this._renderArgs = new Proxy(state, stateProxy);
     this._render = new Render(
-      this._component.execRenderFunction(this._renderArgs, this._slot)
+      this._component.execRenderFunction(this._renderArgs, this._slot),
     );
   }
 
@@ -93,7 +93,7 @@ class ComponentInstance {
    * @returns True on success, false otherwise.
    */
   mount(element: HTMLElement | string): boolean {
-    if (typeof element === 'string') {
+    if (typeof element === "string") {
       element = document.querySelector(element) as HTMLElement;
     }
     if (element) {
@@ -110,7 +110,7 @@ class ComponentInstance {
 
   private refresh() {
     this._render.update(
-      this._component.execRenderFunction(this._renderArgs, this._slot)
+      this._component.execRenderFunction(this._renderArgs, this._slot),
     );
     let fn: ((value?: unknown) => void) | undefined;
     while ((fn = this._onRender.pop()) !== undefined) {

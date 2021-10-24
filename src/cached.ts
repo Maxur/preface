@@ -1,4 +1,4 @@
-import { Reactive } from './reactive.ts';
+import { Reactive } from "./reactive.ts";
 
 class Cached<T> {
   _deps: Reactive<unknown>[] = [];
@@ -32,7 +32,7 @@ class Cached<T> {
 }
 
 /**
- * Create a cached function. Cached function are executed only if the value is getted and a reactive value in the function is updated.
+ * Create a cached function. Cached function are executed only if the value is getted after a reactive value in the function is updated.
  * @param fn The function that return the value.
  * @returns Cached function.
  */

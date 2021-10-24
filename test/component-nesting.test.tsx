@@ -1,6 +1,6 @@
 import { assertEquals, DOMParser } from '../deps.ts';
 import index from './index.ts';
-import { createApplication, Component, reactive } from '../mod.ts';
+import { createApplication, Component, JSX, reactive } from '../mod.ts';
 
 type Props = {
   v: string;

@@ -3,7 +3,7 @@
     "allowJs": true,
     "experimentalDecorators": true,
     "jsx": "react",
-    "jsxFactory": "Component.h",
+    "jsxFactory": "JSX.h",
     "lib": ["deno.ns", "dom", "esnext"],
     "strict": true
   }

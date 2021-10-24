@@ -3,6 +3,7 @@ import index from './index.ts';
 import {
   createApplication,
   Component,
+  JSX,
   reactive,
   cached,
   watch,
