@@ -1,53 +1,47 @@
+import Component from "./Component.ts";
 import Render from "./Render.ts";
 import { isReactive, Reactive, reactive } from "./reactive.ts";
 import { Cached, isCached } from "./cached.ts";
 import { watch } from "./watch.ts";
 import Props from "./types/Props.ts";
 import State from "./types/State.ts";
-import ComponentFunction from "./types/ComponentFunction.ts";
 
-const stateProxy: ProxyHandler<State> = {
-  get(obj, prop: string) {
-    const v = Reflect.get(obj, prop);
-    if (isCached(v) || isReactive(v)) {
-      return v.value;
-    }
-    return v;
-  },
-  set(obj, prop: string, value) {
-    Reflect.set(Reflect.get(obj, prop), "value", value);
-    return true;
-  },
-};
+class ComponentInstance<
+  TComponent extends Component<TProps, TState>,
+  TProps extends Props,
+  TState extends State,
+> {
+  private _component: TComponent;
 
-class ComponentInstance {
-  private _component: ReturnType<ComponentFunction>;
-
-  private _props: Record<string, Reactive<unknown>> = {};
+  private _props: { [P in keyof TProps]: Reactive<TProps[P]> } | null = null;
 
   private _render: Render;
 
   private _refreshTimer = 0;
 
-  private _renderArgs: State;
+  private _renderArgs:
+    & (TProps extends null ? Record<never, never>
+      : { [P in keyof TProps]: Reactive<TProps[P]> })
+    & TState;
 
   private _slot: unknown[];
 
   private _onRender: ((value?: unknown) => void)[] = [];
 
   constructor(
-    componentFunction: ComponentFunction,
-    props: Props,
+    componentFunction: (props: Partial<TProps> | null) => TComponent,
+    props: Partial<TProps> | null,
     slot: unknown[],
   ) {
     this._component = componentFunction(props);
-    for (const v in props) {
-      this._props[v] = reactive(props[v]);
+    const defaultProps = this._component.getDefaultProps();
+    const newProps: Record<string, Reactive<unknown>> = {};
+    for (const k in defaultProps) {
+      newProps[k] = reactive(props ? props[k] : defaultProps[k]);
     }
+    this._props = newProps as { [P in keyof TProps]: Reactive<TProps[P]> };
     this._slot = slot;
-    const state = this._component.execStateFunction({
-      props: this._props,
-    });
+    const state = this._component.execStateFunction(this._props);
     const cacheds: Cached<unknown>[] = [];
     const reactives: Reactive<unknown>[] = [];
     for (const v in state) {
@@ -62,10 +56,15 @@ class ComponentInstance {
     reactives.forEach((s) => {
       s._cachedPool = cacheds;
     });
-    for (const v in props) {
-      this._props[v]._cachedPool = cacheds;
+    if (this._props !== null) {
+      for (const v in this._props) {
+        this._props[v]._cachedPool = cacheds;
+      }
     }
-    this._renderArgs = new Proxy(state, stateProxy);
+    this._renderArgs = Object.assign(state, this._props) as
+      & (TProps extends null ? Record<never, never>
+        : { [P in keyof TProps]: Reactive<TProps[P]> })
+      & TState;
     this._render = new Render(
       this._component.execRenderFunction(this._renderArgs, this._slot),
     );
@@ -79,9 +78,13 @@ class ComponentInstance {
     return this._renderArgs;
   }
 
-  updateWith(props: Props, slot: unknown[]): void {
-    for (const v in props) {
-      this._props[v].value = props[v];
+  updateWith(props: Partial<TProps> | null, slot: unknown[]): void {
+    const defaultProps = this._component.getDefaultProps();
+    if (this._props) {
+      for (const k in this._props) {
+        this._props[k]._value = (props as TProps)[k] ||
+          (defaultProps as TProps)[k];
+      }
     }
     this._slot = slot;
     this.refresh();

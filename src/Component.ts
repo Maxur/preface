@@ -2,51 +2,59 @@ import Jsx from "./types/Jsx.ts";
 import Props from "./types/Props.ts";
 import State from "./types/State.ts";
 import { h } from "./JSX.ts";
+import { Reactive } from "./reactive.ts";
 
-type UnpackStates<T extends State> = {
-  [P in keyof T]: T[P] extends { value: unknown } ? T[P]["value"] : T[P];
-};
-type RenderFunction<T extends State> = (
-  state: {
-    [P in keyof T]: T[P] extends { value: unknown } ? T[P]["value"] : T[P];
-  },
-  slot: unknown[],
-) => Jsx;
-type StateFunction<TProps extends Props, TState extends State> = (
-  options: ComponentOptions<TProps>,
-) => TState;
+class Component<
+  TProps extends Props,
+  TState extends State,
+> {
+  private _defaultProps: TProps;
 
-interface ComponentOptions<T extends Props> {
-  props: T;
-  context?: Record<string, unknown>;
-}
+  private _stateFunction: (
+    props: { [P in keyof TProps]: Reactive<TProps[P]> },
+  ) => TState;
 
-// TODO: Replace "any" to partial type argument inference
-class Component<TProps extends Props, TState extends State = any> {
-  private _stateFunction: StateFunction<TProps, TState>;
+  private _renderFunction: (
+    state:
+      & (TProps extends null ? Record<never, never>
+        : { [P in keyof TProps]: Reactive<TProps[P]> })
+      & TState,
+    slot: unknown[],
+  ) => Jsx;
 
-  private _renderFunction: RenderFunction<TState>;
-
-  constructor(stateFunction: StateFunction<TProps, TState>) {
+  constructor(
+    props: TProps,
+    stateFunction: Component<TProps, TState>["_stateFunction"],
+  ) {
+    this._defaultProps = props;
     this._stateFunction = stateFunction;
     this._renderFunction = () => h("template", null);
   }
 
-  render(renderFunction: RenderFunction<TState>): this {
+  render(renderFunction: Component<TProps, TState>["_renderFunction"]) {
     this._renderFunction = renderFunction;
     return this;
   }
 
-  execStateFunction(options: ComponentOptions<TProps>): TState {
-    return this._stateFunction(options);
+  execStateFunction(
+    props: Parameters<Component<TProps, TState>["_stateFunction"]>[0],
+  ) {
+    return this._stateFunction(props);
   }
 
-  execRenderFunction(state: UnpackStates<TState>, slot: unknown[]): Jsx {
+  execRenderFunction(
+    state: Parameters<Component<TProps, TState>["_renderFunction"]>[0],
+    slot: Parameters<Component<TProps, TState>["_renderFunction"]>[1],
+  ) {
     return this._renderFunction(state, slot);
   }
 
+  getDefaultProps(): TProps {
+    return this._defaultProps;
+  }
+
   end() {
-    return (_: TProps): this => this;
+    return (_: Partial<TProps> | null) => this;
   }
 }
 

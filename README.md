@@ -32,10 +32,10 @@ createApplication(Main).then((ci) => {
 ```tsx
 // import { Component, reactive } from './mod.ts';
 
-export default new Component(() => ({ count: reactive(0) }))
+export default new Component({}, () => ({ count: reactive(0) }))
   .render((state) => (
-    <button type="button" $click={() => (state.count += 1)}>
-      {state.count}
+    <button type="button" $click={() => (state.count.value += 1)}>
+      {state.count.value}
     </button>
   ))
   .end();
@@ -46,7 +46,7 @@ export default new Component(() => ({ count: reactive(0) }))
 ```tsx
 // import { Component, reactive } from './mod.ts';
 
-export default new Component(() => {
+export default new Component({}, () => {
   const items = reactive(["Task 1", "Task 2"]);
   const insert = () => {
     items.value.push(`Task ${items.value.length + 1}`);
@@ -69,7 +69,7 @@ export default new Component(() => {
 }).render((state) => {
   return (
     <div>
-      {state.items.map((item, index) => {
+      {state.items.value.map((item, index) => {
         return (
           <div>
             <input type="text" value={item} $input={state.change(index)} />

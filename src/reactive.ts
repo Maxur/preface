@@ -7,10 +7,12 @@ class Reactive<T extends ReactiveType> {
 
   _functions: (() => unknown)[] = [];
 
-  value: T;
+  _value: T;
+
+  value!: T extends Reactive<ReactiveType> ? T["value"] : T;
 
   constructor(value: T) {
-    this.value = value;
+    this._value = value;
     return new Proxy(this, reactiveProxy());
   }
 }
@@ -18,7 +20,9 @@ class Reactive<T extends ReactiveType> {
 function reactiveProxy<T>(): ProxyHandler<Reactive<T>> {
   return {
     get(obj, prop) {
-      if (prop === "_cachedPool" || prop === "_functions") {
+      if (
+        prop === "_cachedPool" || prop === "_functions" || prop === "_value"
+      ) {
         return Reflect.get(obj, prop);
       }
       obj._cachedPool.forEach((cached) => {
@@ -26,16 +30,23 @@ function reactiveProxy<T>(): ProxyHandler<Reactive<T>> {
           cached._deps.push(obj);
         }
       });
-      const value = Reflect.get(obj, prop);
+      const value = Reflect.get(obj, "_value");
       return typeof value === "object"
-        ? new Proxy(value, refererProxy(obj))
+        ? value instanceof Reactive
+          ? Reflect.get(value, prop)
+          : new Proxy(value, refererProxy(obj))
         : value;
     },
     set(obj, prop, value) {
-      if (prop === "_cachedPool" || prop === "_functions") {
+      if (
+        prop === "_cachedPool" || prop === "_functions" || prop === "_value"
+      ) {
         return Reflect.set(obj, prop, value);
       }
-      const r = Reflect.set(obj, prop, value);
+      const oldValue = Reflect.get(obj, "_value");
+      const r = oldValue instanceof Reactive
+        ? Reflect.set(oldValue, prop, value)
+        : Reflect.set(obj, "_value", value);
       obj._cachedPool.forEach((cached) => {
         if (cached._deps.indexOf(obj) !== -1) {
           cached._dirty = true;

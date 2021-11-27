@@ -2,16 +2,11 @@ import { assertEquals, DOMParser } from '../deps.ts';
 import index from './index.ts';
 import { createApplication, Component, JSX, reactive } from '../mod.ts';
 
-type Props = {
-  v: string;
-};
 
-const Sub = new Component<Props>(({ props }) => ({
-  v: props.v,
-}))
+const Sub = new Component({ v: "" }, () => ({}))
   .render((state, slot) => (
     <div>
-      <span id="v2">{state.v}</span>
+      <span id="v2">{state.v.value}</span>
       <div id="v3">{slot}</div>
     </div>
   ))
@@ -21,13 +16,14 @@ Deno.test('component nesting', async () => {
   globalThis.document = (new DOMParser().parseFromString(index, 'text/html') ||
     new Document()) as Document;
   const c = await createApplication(
-    new Component(() => ({
+    new Component({}, () => {
+      return {
       v1: reactive(42),
-    }))
+    }})
       .render((state) => (
         <div>
           <span id="v1">abc</span>
-          <Sub v="abcd">{state.v1}</Sub>
+          <Sub v="abcd">{state.v1.value}</Sub>
         </div>
       ))
       .end()

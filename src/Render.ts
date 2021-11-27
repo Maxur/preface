@@ -1,11 +1,17 @@
+import Component from "./Component.ts";
 import ComponentInstance from "./ComponentInstance.ts";
 import Jsx from "./types/Jsx.ts";
+import State from "./types/State.ts";
 
 interface VirtualDom {
   tagName: Jsx["tagName"];
   attrs: Jsx["attrs"];
   children: (string | number | (() => unknown) | VirtualDom)[];
-  instance?: ComponentInstance;
+  instance?: ComponentInstance<
+    Component<Record<string, unknown>, State>,
+    Record<string, unknown>,
+    State
+  >;
   html: HTMLElement;
 }
 
