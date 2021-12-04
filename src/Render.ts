@@ -1,100 +1,100 @@
 import Component from "./Component.ts";
 import ComponentInstance from "./ComponentInstance.ts";
-import Jsx from "./types/Jsx.ts";
+import { CustomTag, DefaultTag, Jsx } from "./types/Jsx.ts";
 import State from "./types/State.ts";
 
-interface VirtualDom {
-  tagName: Jsx["tagName"];
-  attrs: Jsx["attrs"];
-  children: (string | number | (() => unknown) | VirtualDom)[];
-  instance?: ComponentInstance<
+interface VirtualDomCommon {
+  children: (string | number | VirtualDom)[];
+  html: HTMLElement;
+}
+
+interface VirtualDomCustomTag extends VirtualDomCommon {
+  tagName: CustomTag["tagName"];
+  attrs: CustomTag["attrs"];
+  instance: ComponentInstance<
     Component<Record<string, unknown>, State>,
     Record<string, unknown>,
     State
   >;
-  html: HTMLElement;
 }
 
-const customAttributePrefix = "$";
+interface VirtualDomDefaultTag extends VirtualDomCommon {
+  tagName: DefaultTag["tagName"];
+  attrs: DefaultTag["attrs"];
+}
+
+type VirtualDom = VirtualDomCustomTag | VirtualDomDefaultTag;
 
 function isSimpleVal(v: unknown): v is number | string | (() => unknown) {
   return ["number", "string", "function"].indexOf(typeof v) !== -1;
 }
 
-function buildHtml(jsx: Jsx) {
+function buildHtml(jsx: Jsx): VirtualDom {
   const { tagName, attrs, children } = jsx;
-  let virtualDom: VirtualDom;
   if (typeof tagName !== "string") {
     const instance = new ComponentInstance(tagName, attrs, children);
     const html = instance.getRender().getRootElement();
-    virtualDom = {
+    return {
       tagName,
       attrs,
       children: [],
       instance,
       html,
-    };
-  } else {
-    const html = document.createElement(tagName);
-    virtualDom = {
-      tagName,
-      attrs,
-      children: [],
-      html,
-    };
+    } as VirtualDomCustomTag;
   }
-  if (typeof tagName === "string") {
-    if (attrs) {
-      Object.entries(attrs).forEach(([name, value]) => {
-        if (name[0] === customAttributePrefix) {
-          virtualDom.html.addEventListener(
-            name.slice(1),
-            value as unknown as EventListener,
-          );
-        } else {
-          if (typeof value === "function") {
-            (virtualDom.html as unknown as Record<string, unknown>)[name] =
-              value;
-          } else {
-            virtualDom.html.setAttribute(name, `${value}`);
-          }
-        }
-      });
-    }
-    children.forEach((child) => {
-      if (isSimpleVal(child)) {
-        const result = `${child}`;
-        virtualDom.html.appendChild(document.createTextNode(result));
-        virtualDom.children.push(result);
+  const html = document.createElement(tagName);
+  const newChildren: VirtualDom["children"] = [];
+  if (attrs) {
+    Object.entries(attrs).forEach(([name, value]) => {
+      if (typeof value === "function") {
+        (html as unknown as Record<string, unknown>)[name] = value;
       } else {
-        const e = buildHtml(child);
-        virtualDom.html.appendChild(e.html);
-        virtualDom.children.push(e);
+        switch (name) {
+          case "$value":
+            (html as HTMLInputElement).value = `${value}`;
+            break;
+          default:
+            html.setAttribute(name, `${value}`);
+            break;
+        }
       }
     });
   }
-  return virtualDom;
+  children.forEach((child) => {
+    if (isSimpleVal(child)) {
+      const result = `${child}`;
+      html.appendChild(document.createTextNode(result));
+      newChildren.push(result);
+    } else {
+      const e = buildHtml(child);
+      html.appendChild(e.html);
+      newChildren.push(e);
+    }
+  });
+  return {
+    tagName,
+    attrs,
+    children: newChildren,
+    html,
+  } as VirtualDomDefaultTag;
 }
 
 function htmlPatch(virtualDom: VirtualDom, jsx: Jsx) {
-  const instance = virtualDom.instance;
   const oldAttrs = virtualDom.attrs;
   const oldChildren = virtualDom.children;
   const { attrs, children } = jsx;
-  if (instance instanceof ComponentInstance) {
-    instance.updateWith(attrs, children);
+  if ("instance" in virtualDom) {
+    virtualDom.instance.updateWith(attrs, children);
   }
   if (oldAttrs) {
     for (const k in oldAttrs) {
       if (attrs === null || attrs[k] === undefined) {
-        if (k[0] !== customAttributePrefix) {
-          virtualDom.html.removeAttribute(k);
-          const exists = virtualDom.attrs && virtualDom.attrs[k]
-            ? virtualDom.attrs
-            : false;
-          if (exists) {
-            delete exists[k];
-          }
+        virtualDom.html.removeAttribute(k);
+        const exists = virtualDom.attrs && virtualDom.attrs[k]
+          ? virtualDom.attrs
+          : false;
+        if (exists) {
+          delete exists[k];
         }
       }
     }
@@ -102,16 +102,19 @@ function htmlPatch(virtualDom: VirtualDom, jsx: Jsx) {
   if (attrs) {
     for (const k in attrs) {
       if (oldAttrs === null || oldAttrs[k] !== attrs[k]) {
-        if (k[0] !== customAttributePrefix) {
-          (virtualDom.html as unknown as Record<string, string>)[
-            k
-          ] = `${attrs[k]}`;
-          const exists = virtualDom.attrs && virtualDom.attrs[k]
-            ? virtualDom.attrs
-            : false;
-          if (exists) {
-            exists[k] = attrs[k];
-          }
+        switch (k) {
+          case "$value":
+            (virtualDom.html as HTMLInputElement).value = `${attrs[k]}`;
+            break;
+          default:
+            virtualDom.html.setAttribute(k, `${attrs[k]}`);
+            break;
+        }
+        const exists = virtualDom.attrs && virtualDom.attrs[k]
+          ? virtualDom.attrs
+          : false;
+        if (exists) {
+          exists[k] = attrs[k];
         }
       }
     }

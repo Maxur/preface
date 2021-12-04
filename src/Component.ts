@@ -1,4 +1,4 @@
-import Jsx from "./types/Jsx.ts";
+import { Jsx } from "./types/Jsx.ts";
 import Props from "./types/Props.ts";
 import State from "./types/State.ts";
 import { h } from "./JSX.ts";

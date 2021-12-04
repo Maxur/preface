@@ -1,4 +1,4 @@
-import Jsx from "./types/Jsx.ts";
+import { CustomTag, DefaultTag, Jsx } from "./types/Jsx.ts";
 
 declare global {
   namespace JSX {
@@ -8,10 +8,24 @@ declare global {
   }
 }
 
-export function h(
-  tagName: Jsx["tagName"],
-  attrs: Jsx["attrs"],
-  ...children: Jsx["children"]
+function h(
+  tagName: CustomTag["tagName"],
+  attrs: CustomTag["attrs"],
+  ...children: CustomTag["children"]
+): CustomTag;
+
+function h(
+  tagName: DefaultTag["tagName"],
+  attrs: DefaultTag["attrs"],
+  ...children: DefaultTag["children"]
+): DefaultTag;
+
+function h(
+  tagName: any,
+  attrs: any,
+  ...children: any
 ): Jsx {
   return { tagName, attrs, children: children.flat(Infinity) };
 }
+
+export { h };

@@ -34,7 +34,7 @@ createApplication(Main).then((ci) => {
 
 export default new Component({}, () => ({ count: reactive(0) }))
   .render((state) => (
-    <button type="button" $click={() => (state.count.value += 1)}>
+    <button type="button" onclick={() => (state.count.value += 1)}>
       {state.count.value}
     </button>
   ))
@@ -72,14 +72,14 @@ export default new Component({}, () => {
       {state.items.value.map((item, index) => {
         return (
           <div>
-            <input type="text" value={item} $input={state.change(index)} />
-            <button type="button" $click={() => state.remove(index)}>
+            <input type="text" value={item} oninput={state.change(index)} />
+            <button type="button" onclick={() => state.remove(index)}>
               Remove
             </button>
           </div>
         );
       })}
-      <button type="button" $click={state.insert}>
+      <button type="button" onclick={state.insert}>
         Insert
       </button>
     </div>
