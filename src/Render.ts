@@ -6,6 +6,7 @@ import State from "./types/State.ts";
 interface VirtualDomCommon {
   children: (string | number | VirtualDom)[];
   html: HTMLElement;
+  key?: string;
 }
 
 interface VirtualDomCustomTag extends VirtualDomCommon {
@@ -31,21 +32,31 @@ function isSimpleVal(v: unknown): v is number | string | (() => unknown) {
 
 function buildHtml(jsx: Jsx): VirtualDom {
   const { tagName, attrs, children } = jsx;
+  let key = undefined;
+  let newAttrs = null;
+  if (attrs) {
+    newAttrs = { ...attrs };
+    if (newAttrs["$key"]) {
+      key = newAttrs["$key"];
+      delete newAttrs["$key"];
+    }
+  }
   if (typeof tagName !== "string") {
-    const instance = new ComponentInstance(tagName, attrs, children);
+    const instance = new ComponentInstance(tagName, newAttrs, children);
     const html = instance.getRender().getRootElement();
     return {
       tagName,
-      attrs,
+      attrs: newAttrs,
       children: [],
       instance,
+      key,
       html,
     } as VirtualDomCustomTag;
   }
   const html = document.createElement(tagName);
   const newChildren: VirtualDom["children"] = [];
-  if (attrs) {
-    Object.entries(attrs).forEach(([name, value]) => {
+  if (newAttrs) {
+    Object.entries(newAttrs).forEach(([name, value]) => {
       if (typeof value === "function") {
         (html as unknown as Record<string, unknown>)[name] = value;
       } else {
@@ -73,19 +84,20 @@ function buildHtml(jsx: Jsx): VirtualDom {
   });
   return {
     tagName,
-    attrs,
+    attrs: newAttrs,
     children: newChildren,
+    key,
     html,
   } as VirtualDomDefaultTag;
 }
 
 function htmlPatch(virtualDom: VirtualDom, jsx: Jsx) {
   const oldAttrs = virtualDom.attrs;
-  const oldChildren = virtualDom.children;
   const { attrs, children } = jsx;
   if ("instance" in virtualDom) {
     virtualDom.instance.updateWith(attrs, children);
   }
+  // Remove old attributes
   if (oldAttrs) {
     for (const k in oldAttrs) {
       if (attrs === null || attrs[k] === undefined) {
@@ -99,16 +111,23 @@ function htmlPatch(virtualDom: VirtualDom, jsx: Jsx) {
       }
     }
   }
+  // Add new attributes
   if (attrs) {
     for (const k in attrs) {
       if (oldAttrs === null || oldAttrs[k] !== attrs[k]) {
-        switch (k) {
-          case "$value":
-            (virtualDom.html as HTMLInputElement).value = `${attrs[k]}`;
-            break;
-          default:
-            virtualDom.html.setAttribute(k, `${attrs[k]}`);
-            break;
+        if (typeof attrs[k] === "function") {
+          (virtualDom.html as unknown as Record<string, unknown>)[k] = attrs[k];
+        } else {
+          switch (k) {
+            case "$value":
+              (virtualDom.html as HTMLInputElement).value = `${attrs[k]}`;
+              break;
+            case "$key":
+              break;
+            default:
+              virtualDom.html.setAttribute(k, `${attrs[k]}`);
+              break;
+          }
         }
         const exists = virtualDom.attrs && virtualDom.attrs[k]
           ? virtualDom.attrs
@@ -119,20 +138,51 @@ function htmlPatch(virtualDom: VirtualDom, jsx: Jsx) {
       }
     }
   }
-  oldChildren.forEach((_, i, obj) => {
-    if (children[i] === undefined) {
-      virtualDom.html.removeChild(virtualDom.html.childNodes[i]);
-      obj.splice(i, 1);
+  // Delete
+  virtualDom.children = virtualDom.children.filter((oc, oi) => {
+    if (!isSimpleVal(oc) && oc.key !== undefined) {
+      const nc = children.find((c) => {
+        if (!isSimpleVal(c) && c.attrs !== null) {
+          return c.attrs["$key"] === oc.key;
+        }
+      });
+      if (nc === undefined) {
+        virtualDom.html.removeChild(virtualDom.html.childNodes[oi]);
+        return false;
+      }
+    } else if (children[oi] === undefined) {
+      virtualDom.html.removeChild(virtualDom.html.childNodes[oi]);
+      return false;
     }
+    return true;
   });
+  // Move / Add
   children.forEach((child, i) => {
-    const oldC = oldChildren[i];
+    let key: VirtualDomCommon["key"] = undefined;
+    if (!isSimpleVal(child) && child.attrs && child.attrs["$key"]) {
+      key = `${child.attrs["$key"]}`;
+    }
+    const oldC = virtualDom.children[i];
     if (isSimpleVal(oldC) && isSimpleVal(child) && oldC !== child) {
       const result = `${child}`;
       virtualDom.html.childNodes[i].nodeValue = result;
       virtualDom.children[i] = result;
     } else if (!isSimpleVal(oldC) && !isSimpleVal(child)) {
-      if (oldC === undefined) {
+      let moved = false;
+      if (key !== undefined) {
+        moved = virtualDom.children.some((c, oldIndex) => {
+          if (!isSimpleVal(c) && c.attrs !== null && c.attrs["$key"] === key) {
+            const oldChild = virtualDom.children[i];
+            virtualDom.children[i] = c;
+            virtualDom.children[oldIndex] = oldChild;
+            return true;
+          }
+        });
+      }
+      if (moved) {
+        htmlPatch(virtualDom.children[i] as VirtualDom, child);
+        return true;
+      } else if (oldC === undefined) {
         const build = buildHtml(child);
         virtualDom.html.appendChild(build.html);
         virtualDom.children.push(build);
