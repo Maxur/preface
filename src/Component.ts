@@ -54,7 +54,7 @@ class Component<
   }
 
   end() {
-    return (_: Partial<TProps> | null) => this;
+    return (_: Partial<TProps & { $key: string }> | null) => this;
   }
 }
 

@@ -29,15 +29,17 @@ class ComponentInstance<
   private _onRender: ((value?: unknown) => void)[] = [];
 
   constructor(
-    componentFunction: (props: Partial<TProps> | null) => TComponent,
-    props: Partial<TProps> | null,
+    componentFunction: (
+      props: Partial<TProps & { $key: string }> | null,
+    ) => TComponent,
+    props: Partial<TProps & { $key: string }> | null,
     slot: unknown[],
   ) {
     this._component = componentFunction(props);
     const defaultProps = this._component.getDefaultProps();
     const newProps: Record<string, Reactive<unknown>> = {};
     for (const k in defaultProps) {
-      newProps[k] = reactive(props ? props[k] : defaultProps[k]);
+      newProps[k] = reactive(props && props[k] || defaultProps[k]);
     }
     this._props = newProps as { [P in keyof TProps]: Reactive<TProps[P]> };
     this._slot = slot;

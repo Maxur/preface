@@ -14,7 +14,7 @@ export default function createApplication<
   TState extends State,
 >(
   componentFn: (
-    props: Partial<TProps> | null,
+    props: Partial<TProps & { $key: string }> | null,
   ) => Component<TProps, TState>,
   css?: string,
 ) {
