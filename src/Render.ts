@@ -102,16 +102,13 @@ function htmlPatch(virtualDom: VirtualDom, jsx: Jsx) {
     for (const k in oldAttrs) {
       if (attrs === null || attrs[k] === undefined) {
         virtualDom.html.removeAttribute(k);
-        const exists = virtualDom.attrs && virtualDom.attrs[k]
-          ? virtualDom.attrs
-          : false;
-        if (exists) {
-          delete exists[k];
+        if (virtualDom.attrs !== null) {
+          delete virtualDom.attrs[k];
         }
       }
     }
   }
-  // Add new attributes
+  // Add / Change attributes
   if (attrs) {
     for (const k in attrs) {
       if (oldAttrs === null || oldAttrs[k] !== attrs[k]) {
@@ -129,12 +126,10 @@ function htmlPatch(virtualDom: VirtualDom, jsx: Jsx) {
               break;
           }
         }
-        const exists = virtualDom.attrs && virtualDom.attrs[k]
-          ? virtualDom.attrs
-          : false;
-        if (exists) {
-          exists[k] = attrs[k];
+        if (virtualDom.attrs === null) {
+          virtualDom.attrs = {};
         }
+        virtualDom.attrs[k] = attrs[k];
       }
     }
   }
