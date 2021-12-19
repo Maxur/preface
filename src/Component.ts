@@ -2,9 +2,9 @@ import { Jsx } from "./types/Jsx.ts";
 import Props from "./types/Props.ts";
 import State from "./types/State.ts";
 import { h } from "./JSX.ts";
-import { Reactive } from "./reactive.ts";
+import Reactive from "./reactivity/Reactive.ts";
 
-class Component<
+export default class Component<
   TProps extends Props,
   TState extends State,
 > {
@@ -57,5 +57,3 @@ class Component<
     return (_: Partial<TProps & { $key: string }> | null) => this;
   }
 }
-
-export default Component;

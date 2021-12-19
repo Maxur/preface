@@ -36,7 +36,7 @@ function buildHtml(jsx: Jsx): VirtualDom {
   let newAttrs = null;
   if (attrs) {
     newAttrs = { ...attrs };
-    if (newAttrs["$key"]) {
+    if (newAttrs["$key"] !== undefined) {
       key = newAttrs["$key"];
       delete newAttrs["$key"];
     }

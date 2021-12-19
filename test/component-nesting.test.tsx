@@ -1,6 +1,6 @@
 import { assertEquals, DOMParser } from '../deps.ts';
 import index from './index.ts';
-import { createApplication, Component, JSX, reactive } from '../mod.ts';
+import { createApplication, Component, JSX, Reactive } from '../mod.ts';
 
 
 const Sub = new Component({ v: "" }, () => ({}))
@@ -18,7 +18,7 @@ Deno.test('component nesting', async () => {
   const c = await createApplication(
     new Component({}, () => {
       return {
-      v1: reactive(42),
+      v1: new Reactive(42),
     }})
       .render((state) => (
         <div>

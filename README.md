@@ -6,13 +6,11 @@ This project is a component based front-end typescript framework.
 
 - Variable reactivity
   - [x] Reactive property
-  - [x] Cached property (function that uses "reactive property")
-  - [x] Watcher
+  - [x] Cached property (function that uses "Reactive property")
 - Component
   - [x] Import
+  - [x] Props
   - [x] Slot
-- Event handling
-  - [x] Basic event (onclick, onchange, ...)
 
 ## Setup
 
@@ -30,9 +28,9 @@ createApplication(Main).then((ci) => {
 ### Button count
 
 ```tsx
-// import { Component, reactive } from './mod.ts';
+// import { Component, Reactive } from './mod.ts';
 
-export default new Component({}, () => ({ count: reactive(0) }))
+export default new Component({}, () => ({ count: new Reactive(0) }))
   .render((state) => (
     <button type="button" onclick={() => (state.count.value += 1)}>
       {state.count.value}
@@ -44,10 +42,10 @@ export default new Component({}, () => ({ count: reactive(0) }))
 ### Todo list
 
 ```tsx
-// import { Component, reactive } from './mod.ts';
+// import { Component, Reactive } from './mod.ts';
 
 export default new Component({}, () => {
-  const items = reactive(["Task 1", "Task 2"]);
+  const items = new Reactive(["Task 1", "Task 2"]);
   const insert = () => {
     items.value.push(`Task ${items.value.length + 1}`);
   };
@@ -55,9 +53,9 @@ export default new Component({}, () => {
     items.value.splice(index, 1);
   };
   const change = (index: number) =>
-    (e: any) => {
+    (e: Event) => {
       if (e && e.target) {
-        items.value[index] = e.target.value;
+        items.value[index] = (e.target as HTMLInputElement).value;
       }
     };
   return {

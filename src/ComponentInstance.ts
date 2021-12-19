@@ -1,17 +1,18 @@
 import Component from "./Component.ts";
 import Render from "./Render.ts";
-import { isReactive, Reactive, reactive } from "./reactive.ts";
-import { Cached, isCached } from "./cached.ts";
-import { watch } from "./watch.ts";
+import Reactive from "./reactivity/Reactive.ts";
+import ReactivityPool from "./reactivity/ReactivityPool.ts";
 import Props from "./types/Props.ts";
 import State from "./types/State.ts";
 
-class ComponentInstance<
+export default class ComponentInstance<
   TComponent extends Component<TProps, TState>,
   TProps extends Props,
   TState extends State,
 > {
   private _component: TComponent;
+
+  private _reactivityPool: ReactivityPool;
 
   private _props: { [P in keyof TProps]: Reactive<TProps[P]> } | null = null;
 
@@ -37,36 +38,25 @@ class ComponentInstance<
   ) {
     this._component = componentFunction(props);
     const defaultProps = this._component.getDefaultProps();
+    for (const k in defaultProps) {
+      const v = defaultProps[k];
+      if (v instanceof Reactive) {
+        defaultProps[k] = new Reactive(v.value);
+      }
+    }
     const newProps: Record<string, Reactive<unknown>> = {};
     for (const k in defaultProps) {
-      newProps[k] = reactive(props && props[k] || defaultProps[k]);
+      newProps[k] = new Reactive(props && props[k] || defaultProps[k]);
     }
     this._props = newProps as { [P in keyof TProps]: Reactive<TProps[P]> };
     this._slot = slot;
     const state = this._component.execStateFunction(this._props);
-    const cacheds: Cached<unknown>[] = [];
-    const reactives: Reactive<unknown>[] = [];
-    for (const v in state) {
-      const e = state[v];
-      if (isCached(e)) {
-        cacheds.push(e);
-      } else if (isReactive(e)) {
-        reactives.push(e);
-        watch(e, this.notify);
-      }
-    }
-    reactives.forEach((s) => {
-      s._cachedPool = cacheds;
-    });
-    if (this._props !== null) {
-      for (const v in this._props) {
-        this._props[v]._cachedPool = cacheds;
-      }
-    }
     this._renderArgs = Object.assign(state, this._props) as
       & (TProps extends null ? Record<never, never>
         : { [P in keyof TProps]: Reactive<TProps[P]> })
       & TState;
+    this._reactivityPool = new ReactivityPool(Object.values(this._renderArgs));
+    this._reactivityPool.onUpdate(this.notify);
     this._render = new Render(
       this._component.execRenderFunction(this._renderArgs, this._slot),
     );
@@ -133,5 +123,3 @@ class ComponentInstance<
     });
   }
 }
-
-export default ComponentInstance;
