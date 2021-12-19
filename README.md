@@ -45,9 +45,12 @@ export default new Component({}, () => ({ count: new Reactive(0) }))
 // import { Component, Reactive } from './mod.ts';
 
 export default new Component({}, () => {
-  const items = new Reactive(["Task 1", "Task 2"]);
+  const items = new Reactive([{ id: 1, text: "Task 1" }]);
   const insert = () => {
-    items.value.push(`Task ${items.value.length + 1}`);
+    items.value.push({
+      id: items.value.length + 1,
+      text: `Task ${items.value.length + 1}`,
+    });
   };
   const remove = (index: number) => {
     items.value.splice(index, 1);
@@ -55,7 +58,7 @@ export default new Component({}, () => {
   const change = (index: number) =>
     (e: Event) => {
       if (e && e.target) {
-        items.value[index] = (e.target as HTMLInputElement).value;
+        items.value[index].text = (e.target as HTMLInputElement).value;
       }
     };
   return {
@@ -69,8 +72,12 @@ export default new Component({}, () => {
     <div>
       {state.items.value.map((item, index) => {
         return (
-          <div>
-            <input type="text" value={item} oninput={state.change(index)} />
+          <div $key={item.id}>
+            <input
+              type="text"
+              value={item.text}
+              oninput={state.change(index)}
+            />
             <button type="button" onclick={() => state.remove(index)}>
               Remove
             </button>

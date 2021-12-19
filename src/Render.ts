@@ -134,11 +134,12 @@ function htmlPatch(virtualDom: VirtualDom, jsx: Jsx) {
     }
   }
   // Delete
-  virtualDom.children = virtualDom.children.filter((oc, oi) => {
+  let oi = 0;
+  virtualDom.children = virtualDom.children.filter((oc) => {
     if (!isSimpleVal(oc) && oc.key !== undefined) {
       const nc = children.find((c) => {
         if (!isSimpleVal(c) && c.attrs !== null) {
-          return c.attrs["$key"] === oc.key;
+          return c.attrs["$key"] === oc.key; // && c.tagName === oc.tagName;
         }
       });
       if (nc === undefined) {
@@ -149,6 +150,7 @@ function htmlPatch(virtualDom: VirtualDom, jsx: Jsx) {
       virtualDom.html.removeChild(virtualDom.html.childNodes[oi]);
       return false;
     }
+    oi++;
     return true;
   });
   // Move / Add

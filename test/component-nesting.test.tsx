@@ -2,7 +2,6 @@ import { assertEquals, DOMParser } from '../deps.ts';
 import index from './index.ts';
 import { createApplication, Component, JSX, Reactive } from '../mod.ts';
 
-
 const Sub = new Component({ v: "" }, () => ({}))
   .render((state, slot) => (
     <div>
