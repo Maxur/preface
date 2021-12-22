@@ -4,9 +4,9 @@ import Cached from "./Cached.ts";
 export default class ReactivityPool {
   private _listeners: (() => void)[] = [];
 
-  private _cached: Cached<unknown>[] = [];
+  private _cached: Cached[] = [];
 
-  private _capturing = new Set<Cached<unknown>>();
+  private _capturing = new Set<Cached>();
 
   constructor(reactivables: unknown[]) {
     reactivables.forEach((reactivable) => {
@@ -23,21 +23,21 @@ export default class ReactivityPool {
     this._listeners.push(fn);
   }
 
-  startDepedenciesCapture(cached: Cached<unknown>) {
+  startDepedenciesCapture(cached: Cached) {
     this._capturing.add(cached);
   }
 
-  stopDepedenciesCapture(cached: Cached<unknown>) {
+  stopDepedenciesCapture(cached: Cached) {
     this._capturing.delete(cached);
   }
 
-  notifyReactiveGet(reactive: Reactive<unknown>) {
+  notifyReactiveGet(reactive: Reactive) {
     this._capturing.forEach((capture) => {
       capture._deps.add(reactive);
     });
   }
 
-  notifyReactiveSet(reactive: Reactive<unknown>) {
+  notifyReactiveSet(reactive: Reactive) {
     this._cached.forEach((cached) => {
       if (cached._deps.has(reactive)) {
         cached._dirty = true;

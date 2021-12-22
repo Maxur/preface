@@ -1,7 +1,7 @@
 import Reactive from "./Reactive.ts";
 import ReactivityPool from "./ReactivityPool.ts";
 
-export default class Cached<T> {
+export default class Cached<T = unknown> {
   private _reactivityPool?: ReactivityPool;
 
   _deps = new Set<Reactive>();

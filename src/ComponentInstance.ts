@@ -44,7 +44,7 @@ export default class ComponentInstance<
         defaultProps[k] = new Reactive(v.value);
       }
     }
-    const newProps: Record<string, Reactive<unknown>> = {};
+    const newProps: Record<string, Reactive> = {};
     for (const k in defaultProps) {
       newProps[k] = new Reactive(props && props[k] || defaultProps[k]);
     }
