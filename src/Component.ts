@@ -1,8 +1,16 @@
-import { Jsx } from "./types/Jsx.ts";
 import Props from "./types/Props.ts";
 import State from "./types/State.ts";
-import { h } from "./JSX.ts";
 import Reactive from "./reactivity/Reactive.ts";
+import jsx from "./render/jsx.ts";
+import VNode from "./render/VNode.ts";
+
+type ReactiveProps<TProps extends Props> = (TProps extends null ? null
+  : { [P in keyof TProps]: Reactive<TProps[P]> });
+
+interface RenderVars<TProps extends Props, TState extends State> {
+  props: ReactiveProps<TProps>;
+  state: TState;
+}
 
 export default class Component<
   TProps extends Props,
@@ -10,25 +18,41 @@ export default class Component<
 > {
   private _defaultProps: TProps;
 
-  private _stateFunction: (
-    props: { [P in keyof TProps]: Reactive<TProps[P]> },
-  ) => TState;
+  private _stateFunction: (props: ReactiveProps<TProps>) => TState;
 
   private _renderFunction: (
-    state:
-      & (TProps extends null ? Record<never, never>
-        : { [P in keyof TProps]: Reactive<TProps[P]> })
-      & TState,
+    renderVars: RenderVars<TProps, TState>,
     slot: unknown[],
-  ) => Jsx;
+  ) => VNode;
+
+  private _onMountFunction: (
+    renderVars: RenderVars<TProps, TState>,
+    rootElements: VNode,
+  ) => void;
+
+  private _onDestroyFunction: (
+    renderVars: RenderVars<TProps, TState>,
+  ) => void;
 
   constructor(
     props: TProps,
-    stateFunction: Component<TProps, TState>["_stateFunction"],
+    stateFunction: (Component<TProps, TState>["_stateFunction"]),
   ) {
     this._defaultProps = props;
     this._stateFunction = stateFunction;
-    this._renderFunction = () => h("template", null);
+    this._onMountFunction = () => {};
+    this._onDestroyFunction = () => {};
+    this._renderFunction = () => jsx.h("template", null);
+  }
+
+  onMount(mountFunction: Component<TProps, TState>["_onMountFunction"]) {
+    this._onMountFunction = mountFunction;
+    return this;
+  }
+
+  onDestroy(destroyFunction: Component<TProps, TState>["_onDestroyFunction"]) {
+    this._onDestroyFunction = destroyFunction;
+    return this;
   }
 
   render(renderFunction: Component<TProps, TState>["_renderFunction"]) {
@@ -49,11 +73,27 @@ export default class Component<
     return this._renderFunction(state, slot);
   }
 
-  getDefaultProps(): TProps {
+  execMountFunction(
+    state: Parameters<Component<TProps, TState>["_onMountFunction"]>[0],
+    rootElements: Parameters<Component<TProps, TState>["_onMountFunction"]>[1],
+  ) {
+    return this._onMountFunction(state, rootElements);
+  }
+
+  execDestroyFunction(
+    state: Parameters<Component<TProps, TState>["_onDestroyFunction"]>[0],
+  ) {
+    return this._onDestroyFunction(state);
+  }
+
+  getDefaultProps() {
     return this._defaultProps;
   }
 
   end() {
-    return (_: Partial<TProps & { $key: string }> | null) => this;
+    return (
+      _props: Partial<TProps>,
+      _children: unknown[],
+    ) => this;
   }
 }

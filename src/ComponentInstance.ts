@@ -1,101 +1,103 @@
 import Component from "./Component.ts";
-import Render from "./Render.ts";
 import Reactive from "./reactivity/Reactive.ts";
 import ReactivityPool from "./reactivity/ReactivityPool.ts";
 import Props from "./types/Props.ts";
 import State from "./types/State.ts";
+import VNode from "./render/VNode.ts";
 
 export default class ComponentInstance<
-  TComponent extends Component<TProps, TState>,
   TProps extends Props,
   TState extends State,
 > {
-  private _component: TComponent;
+  private _component: Component<TProps, TState>;
 
   private _reactivityPool: ReactivityPool;
 
-  private _props: { [P in keyof TProps]: Reactive<TProps[P]> } | null = null;
-
-  private _render: Render;
-
   private _refreshTimer = 0;
 
-  private _renderArgs:
-    & (TProps extends null ? Record<never, never>
-      : { [P in keyof TProps]: Reactive<TProps[P]> })
-    & TState;
+  private _renderArgs: Parameters<
+    Component<TProps, TState>["execRenderFunction"]
+  >[0];
 
   private _slot: unknown[];
 
   private _onRender: ((value?: unknown) => void)[] = [];
 
+  private _mountedElement?: Node;
+
+  private _virtualDom: VNode;
+
   constructor(
-    componentFunction: (
-      props: Partial<TProps & { $key: string }> | null,
-    ) => TComponent,
-    props: Partial<TProps & { $key: string }> | null,
+    component: Component<TProps, TState>,
+    props: Partial<TProps>,
     slot: unknown[],
   ) {
-    this._component = componentFunction(props);
-    const defaultProps = this._component.getDefaultProps();
-    for (const k in defaultProps) {
-      const v = defaultProps[k];
-      if (v instanceof Reactive) {
-        defaultProps[k] = new Reactive(v.value);
-      }
-    }
-    const newProps: Record<string, Reactive> = {};
-    for (const k in defaultProps) {
-      newProps[k] = new Reactive(props && props[k] || defaultProps[k]);
-    }
-    this._props = newProps as { [P in keyof TProps]: Reactive<TProps[P]> };
-    this._slot = slot;
-    const state = this._component.execStateFunction(this._props);
-    this._renderArgs = Object.assign(state, this._props) as
-      & (TProps extends null ? Record<never, never>
-        : { [P in keyof TProps]: Reactive<TProps[P]> })
-      & TState;
-    this._reactivityPool = new ReactivityPool(Object.values(this._renderArgs));
-    this._reactivityPool.onUpdate(this.notify);
-    this._render = new Render(
-      this._component.execRenderFunction(this._renderArgs, this._slot),
+    this._component = component;
+    const newProps = createReactiveProps(
+      props,
+      this._component.getDefaultProps(),
     );
-  }
-
-  getRender(): Render {
-    return this._render;
-  }
-
-  getRenderArgs(): State {
-    return this._renderArgs;
-  }
-
-  updateWith(props: Partial<TProps> | null, slot: unknown[]): void {
-    const defaultProps = this._component.getDefaultProps();
-    if (this._props) {
-      for (const k in this._props) {
-        this._props[k]._value = (props as TProps)[k] ||
-          (defaultProps as TProps)[k];
-      }
-    }
+    const state = this._component.execStateFunction(
+      newProps as Parameters<Component<TProps, TState>["execStateFunction"]>[0],
+    );
+    this._renderArgs = {
+      props: newProps as Parameters<
+        Component<TProps, TState>["execStateFunction"]
+      >[0],
+      state,
+    };
     this._slot = slot;
-    this.refresh();
+    this._reactivityPool = new ReactivityPool([
+      ...Object.values(this._renderArgs.props || {}),
+      ...Object.values(this._renderArgs.state),
+    ]);
+    this._reactivityPool.onUpdate(this.notify);
+    this._virtualDom = this._component.execRenderFunction(
+      this._renderArgs,
+      this._slot,
+    );
+    this._virtualDom.build();
   }
 
   /**
    * Mount the component on a HTML element.
-   * @param elmement The HTML element or a query selector.
+   * @param element The HTML element or a query selector.
    * @returns True on success, false otherwise.
    */
-  mount(element: HTMLElement | string): boolean {
-    if (typeof element === "string") {
-      element = document.querySelector(element) as HTMLElement;
+  mount(mountedElement?: Node | string, before?: Node) {
+    const alreadyMounted = !!this._mountedElement;
+    if (typeof mountedElement === "string") {
+      this._mountedElement = document.querySelector(
+        mountedElement,
+      ) as Node;
+    } else {
+      this._mountedElement = mountedElement;
     }
-    if (element) {
-      element.appendChild(this._render.getRootElement());
-      return true;
+    if (this._mountedElement && this._virtualDom.dom) {
+      if (before) {
+        this._mountedElement.insertBefore(this._virtualDom.dom, before);
+      } else {
+        this._mountedElement.appendChild(this._virtualDom.dom);
+      }
+      if (!alreadyMounted) {
+        this._component.execMountFunction(this._renderArgs, this._virtualDom);
+      }
     }
-    return false;
+  }
+
+  update(props: Partial<TProps> | null, slot: unknown[]): void {
+    updateProps(
+      props,
+      this._component.getDefaultProps(),
+      this._renderArgs.props,
+    );
+    this._slot = slot;
+    this.refresh();
+  }
+
+  destroy() {
+    this._component.execDestroyFunction(this._renderArgs);
+    this._virtualDom.delete();
   }
 
   private notify = () => {
@@ -104,13 +106,17 @@ export default class ComponentInstance<
   };
 
   private refresh() {
-    this._render.update(
+    this._virtualDom.update(
       this._component.execRenderFunction(this._renderArgs, this._slot),
     );
     let fn: ((value?: unknown) => void) | undefined;
     while ((fn = this._onRender.pop()) !== undefined) {
       fn();
     }
+  }
+
+  get virtualDom() {
+    return this._virtualDom;
   }
 
   /**
@@ -122,4 +128,37 @@ export default class ComponentInstance<
       this._onRender.push(resolve);
     });
   }
+}
+
+function createReactiveProps<TProps extends Props>(
+  props: Props,
+  defaultProps: TProps,
+): { [P in keyof TProps]: Reactive<TProps[P]> } | null {
+  if (!defaultProps) return null;
+  return Object.entries(defaultProps).reduce((acc, [k, v]) => {
+    if (props !== null && k in props) { // If property filled, create a "Reactive" property
+      acc[k] = new Reactive(props[k]);
+    } else if (v instanceof Reactive) { // If property isn't filled, and default property is a "Reactive", create a "Reactive" property equals to the value of the default property
+      acc[k] = new Reactive(v._value);
+    } else { // If property isn't filled, and default property is not a "Reactive", create a "Reactive" property with the value of the default property
+      acc[k] = new Reactive(v);
+    }
+    return acc;
+  }, {} as any);
+}
+
+function updateProps<TProps extends Props>(
+  newProps: Partial<Props> | null,
+  defaultProps: TProps,
+  props: { [P in keyof TProps]: Reactive<TProps[P]> } | null,
+): { [P in keyof TProps]: Reactive<TProps[P]> } | null {
+  if (!defaultProps) return null;
+  return Object.entries(defaultProps).reduce((acc, [k, v]) => {
+    if (newProps !== null && k in newProps) { // If property filled, change the "Reactive" property
+      acc[k]._value = newProps[k];
+    } else if (!(v instanceof Reactive)) { // If property isn't filled, change the "Reactive" property to the value of the default property only if the default property isn't a "Reactive"
+      acc[k]._value = v;
+    }
+    return acc;
+  }, props as any);
 }

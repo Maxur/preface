@@ -13,29 +13,23 @@ export default function createApplication<
   TProps extends Props,
   TState extends State,
 >(
-  componentFn: (
-    props: Partial<TProps & { $key: string }> | null,
-  ) => Component<TProps, TState>,
+  componentFn: ReturnType<Component<TProps, TState>["end"]>,
   css?: string,
 ) {
-  return new Promise<
-    ComponentInstance<
-      Component<TProps, TState>,
-      TProps,
-      TState
-    >
-  >(
+  return new Promise<ComponentInstance<TProps, TState>>(
     (resolve) => {
       if (css !== undefined) {
         document.head.appendChild(document.createElement("style")).innerHTML =
           css;
       }
+      const component = componentFn({}, []);
+      const componentInstance = new ComponentInstance(component, {}, []);
       if (document.readyState === "loading") {
         globalThis.addEventListener("DOMContentLoaded", () => {
-          resolve(new ComponentInstance(componentFn, null, []));
+          resolve(componentInstance);
         });
       } else {
-        resolve(new ComponentInstance(componentFn, null, []));
+        resolve(componentInstance);
       }
     },
   );

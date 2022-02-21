@@ -1,7 +1,8 @@
 {
   "compilerOptions": {
     "jsx": "react",
-    "jsxFactory": "JSX.h",
+    "jsxFactory": "jsx.h",
+    "jsxFragmentFactory": "jsx.fragment",
     "lib": ["deno.ns", "dom", "esnext"],
     "strict": true
   }
