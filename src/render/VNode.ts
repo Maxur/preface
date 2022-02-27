@@ -23,7 +23,7 @@ export default abstract class VNode {
     this.buildNode();
     if (this.children) {
       this.children.forEach((c) => {
-        c.build().setDomParent(this);
+        c.build().setDomParent(this._dom);
       });
     }
     return this;
@@ -31,12 +31,12 @@ export default abstract class VNode {
 
   abstract buildNode(): void;
 
-  setDomParent(parent?: VNode, before?: VNode) {
-    if (parent && parent._dom && this._dom) {
+  setDomParent(parent?: Node, before?: VNode) {
+    if (parent && this._dom) {
       if (before && before.firstNode) {
-        parent._dom.insertBefore(this._dom, before.firstNode);
+        parent.insertBefore(this._dom, before.firstNode);
       } else {
-        parent._dom.appendChild(this._dom);
+        parent.appendChild(this._dom);
       }
     }
   }
@@ -50,7 +50,10 @@ export default abstract class VNode {
       const newChild = child.key !== undefined
         ? newVNode.children.find((nc) => nc.key === child.key)
         : newVNode.children[index];
-      if (newChild && child.constructor === newChild.constructor) {
+      if (
+        newChild && child.constructor === newChild.constructor &&
+        child.updateableWith(newChild)
+      ) {
         child.update(newChild);
         ++index;
       } else {
@@ -62,12 +65,14 @@ export default abstract class VNode {
     newVNode.children.forEach((newChild, newIndex) => {
       const index = newChild.key !== undefined
         ? this.children.findIndex((c) => c.key === newChild.key)
-        : newIndex;
+        : this.children[newIndex]
+        ? newIndex
+        : -1;
       if (index === -1) {
-        newChild.build().setDomParent(this, this.children[newIndex]);
+        newChild.build().setDomParent(this._dom, this.children[newIndex]);
         this.children.splice(newIndex, 0, newChild);
       } else if (index !== newIndex) {
-        this.children[index].setDomParent(this, this.children[newIndex]);
+        this.children[index].setDomParent(this._dom, this.children[newIndex]);
         this.children.splice(newIndex, 0, this.children.splice(index, 1)[0]);
       }
     });
@@ -75,6 +80,10 @@ export default abstract class VNode {
   }
 
   abstract updateNode(newVNode: VNode): void;
+
+  updateableWith(_newVNode: VNode) {
+    return true;
+  }
 
   delete() {
     this.children.forEach((child) => {

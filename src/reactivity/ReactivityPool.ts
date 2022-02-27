@@ -2,11 +2,11 @@ import Reactive from "./Reactive.ts";
 import Cached from "./Cached.ts";
 
 export default class ReactivityPool {
-  private _listeners: (() => void)[] = [];
+  private listeners: (() => void)[] = [];
 
-  private _cached: Cached[] = [];
+  private cached: Cached[] = [];
 
-  private _capturing = new Set<Cached>();
+  private capturing = new Set<Cached>();
 
   constructor(reactivables: unknown[]) {
     reactivables.forEach((reactivable) => {
@@ -14,35 +14,35 @@ export default class ReactivityPool {
         reactivable.setReactivityPool(this);
       } else if (reactivable instanceof Cached) {
         reactivable.setReactivityPool(this);
-        this._cached.push(reactivable);
+        this.cached.push(reactivable);
       }
     });
   }
 
   onUpdate(fn: (() => void)) {
-    this._listeners.push(fn);
+    this.listeners.push(fn);
   }
 
   startDepedenciesCapture(cached: Cached) {
-    this._capturing.add(cached);
+    this.capturing.add(cached);
   }
 
   stopDepedenciesCapture(cached: Cached) {
-    this._capturing.delete(cached);
+    this.capturing.delete(cached);
   }
 
   notifyReactiveGet(reactive: Reactive) {
-    this._capturing.forEach((capture) => {
-      capture._deps.add(reactive);
+    this.capturing.forEach((capture) => {
+      capture.deps.add(reactive);
     });
   }
 
   notifyReactiveSet(reactive: Reactive) {
-    this._cached.forEach((cached) => {
-      if (cached._deps.has(reactive)) {
-        cached._dirty = true;
+    this.cached.forEach((cached) => {
+      if (cached.deps.has(reactive)) {
+        cached.dirty = true;
       }
     });
-    this._listeners.forEach((fn) => fn());
+    this.listeners.forEach((fn) => fn());
   }
 }

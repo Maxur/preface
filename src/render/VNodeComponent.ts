@@ -8,7 +8,7 @@ export default class VNodeComponent extends VNode {
   private value?: ComponentInstance<Props, State>;
 
   constructor(
-    private component: Component<Props, State>,
+    private readonly component: Component<Props, State>,
     private attrs: Props,
     private slots: VNode[],
   ) {
@@ -27,12 +27,12 @@ export default class VNodeComponent extends VNode {
     );
   }
 
-  setDomParent(parent?: VNode, before?: VNode) {
-    if (parent && parent.dom && this.value) {
+  setDomParent(parent?: Node, before?: VNode) {
+    if (parent && this.value) {
       if (before && before.firstNode) {
-        this.value.mount(parent.dom, before.firstNode);
+        this.value.mount(parent, before.firstNode);
       } else {
-        this.value.mount(parent.dom);
+        this.value.mount(parent);
       }
     }
   }
@@ -41,6 +41,10 @@ export default class VNodeComponent extends VNode {
     if (this.value) {
       this.value.update(newVNode.attrs, newVNode.slots);
     }
+  }
+
+  updateableWith(newVNode: VNodeComponent) {
+    return this.component.constructor === newVNode.component.constructor;
   }
 
   deleteNode() {

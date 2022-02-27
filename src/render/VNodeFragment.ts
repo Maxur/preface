@@ -15,7 +15,7 @@ export default class VNodeFragment extends VNode {
     this._dom = document.createDocumentFragment();
   }
 
-  setDomParent(parent?: VNode, before?: VNode) {
+  setDomParent(parent?: Node, before?: VNode) {
     this.children.forEach((c) => {
       c.setDomParent(parent, before);
     });

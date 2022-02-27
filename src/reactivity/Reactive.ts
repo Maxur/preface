@@ -1,9 +1,9 @@
 import ReactivityPool from "./ReactivityPool.ts";
 
 export default class Reactive<T = unknown> {
-  private _reactivityPool?: ReactivityPool;
+  private reactivityPool?: ReactivityPool;
 
-  private _listeners: (() => void)[] = [];
+  private listeners: (() => void)[] = [];
 
   _value: T;
 
@@ -17,24 +17,25 @@ export default class Reactive<T = unknown> {
   }
 
   onUpdate(fn: (() => void)) {
-    this._listeners.push(fn);
+    this.listeners.push(fn);
+    return this;
   }
 
   notifyGet() {
-    if (this._reactivityPool) {
-      this._reactivityPool.notifyReactiveGet(this);
+    if (this.reactivityPool) {
+      this.reactivityPool.notifyReactiveGet(this);
     }
   }
 
   notifySet() {
-    if (this._reactivityPool) {
-      this._reactivityPool.notifyReactiveSet(this);
+    if (this.reactivityPool) {
+      this.reactivityPool.notifyReactiveSet(this);
     }
-    this._listeners.forEach((fn) => fn());
+    this.listeners.forEach((fn) => fn());
   }
 
   setReactivityPool(reactivityPool: ReactivityPool) {
-    this._reactivityPool = reactivityPool;
+    this.reactivityPool = reactivityPool;
   }
 
   get value(): T extends Reactive ? T["value"] : T {

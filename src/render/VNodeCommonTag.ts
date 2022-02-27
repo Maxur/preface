@@ -79,6 +79,10 @@ export default class VNodeCommonTag extends VNode {
     }
   }
 
+  updateableWith(newVNode: VNodeCommonTag) {
+    return this.tagName === newVNode.tagName;
+  }
+
   deleteNode() {
     if (this._dom) {
       (this._dom as HTMLElement).remove();

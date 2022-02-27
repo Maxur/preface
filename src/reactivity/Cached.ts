@@ -2,13 +2,13 @@ import Reactive from "./Reactive.ts";
 import ReactivityPool from "./ReactivityPool.ts";
 
 export default class Cached<T = unknown> {
-  private _reactivityPool?: ReactivityPool;
+  private reactivityPool?: ReactivityPool;
 
-  _deps = new Set<Reactive>();
+  deps = new Set<Reactive>();
 
-  _dirty = true;
+  dirty = true;
 
-  private _fn: () => T;
+  private fn: () => T;
 
   private _value!: T;
 
@@ -18,29 +18,29 @@ export default class Cached<T = unknown> {
    * @returns Cached function.
    */
   constructor(fn: () => T) {
-    this._fn = fn;
+    this.fn = fn;
   }
 
   private refresh() {
-    this._deps.clear();
-    if (this._reactivityPool) {
-      this._reactivityPool.startDepedenciesCapture(this);
+    this.deps.clear();
+    if (this.reactivityPool) {
+      this.reactivityPool.startDepedenciesCapture(this);
     }
-    this._value = this._fn();
-    if (this._reactivityPool) {
-      this._reactivityPool.stopDepedenciesCapture(this);
+    this._value = this.fn();
+    if (this.reactivityPool) {
+      this.reactivityPool.stopDepedenciesCapture(this);
     }
-    this._dirty = false;
+    this.dirty = false;
   }
 
   get value(): T {
-    if (this._dirty === true) {
+    if (this.dirty === true) {
       this.refresh();
     }
     return this._value;
   }
 
   setReactivityPool(reactivityPool: ReactivityPool) {
-    this._reactivityPool = reactivityPool;
+    this.reactivityPool = reactivityPool;
   }
 }

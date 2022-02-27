@@ -1,27 +1,28 @@
 # Preface
 
-This project is a component based front-end typescript framework.
+This project is a component based front-end typescript framework. It works using
+[Deno](https://deno.land/).
 
 ## Features
 
+- JSX Render
+  - Common tag (div, span, ...)
+  - Component
+  - Fragment
+  - Text
 - Variable reactivity
-  - [x] Reactive property
-  - [x] Cached property (function that uses "Reactive property")
+  - Reactive property
+  - Cached property (function that GET some "Reactive property")
 - Component
-  - [x] Import
-  - [x] Props
-  - [x] Slot
+  - Use reactive variable
+  - Render function w/ JSX
+  - Props w/ default values
+  - Slot
 
-## Setup
+## Getting started
 
-```ts
-// import { createApplication } from './mod.ts';
-// import Main from './components/Main/index.tsx';
-
-createApplication(Main).then((ci) => {
-  ci.mount("#app");
-});
-```
+Use [Preface-cli](https://github.com/Maxur/preface-cli), it will create the
+project with all the configuration needed.
 
 ## Example
 
@@ -31,7 +32,7 @@ createApplication(Main).then((ci) => {
 // import { Component, Reactive } from './mod.ts';
 
 export default new Component({}, () => ({ count: new Reactive(0) }))
-  .render((state) => (
+  .render(({ state }) => (
     <button type="button" onclick={() => (state.count.value += 1)}>
       {state.count.value}
     </button>
@@ -67,7 +68,7 @@ export default new Component({}, () => {
     remove,
     change,
   };
-}).render((state) => {
+}).render(({ state }) => {
   return (
     <div>
       {state.items.value.map((item, index) => {
